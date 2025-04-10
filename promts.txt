@@ -1,0 +1,4 @@
+Create a tool in python for OpenWebUI.
+This should to able to take a promts from user and search it over web using brave.
+To search web use the GET call in request.http file.
+Then summry the results and provide summry to user.
