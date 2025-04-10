@@ -36,7 +36,7 @@ class Tools:
             await __event_emitter__({
                 "type": "status",
                 "data": {
-                    "description": "Searching Brave...",
+                    "description": "Initializing Brave Search...",
                     "done": False,
                     "hidden": False
                 }
@@ -54,6 +54,16 @@ class Tools:
         
         url = f'https://search.brave.com/search?q={query}&source=desktop'
         try:
+            if __event_emitter__:
+                await __event_emitter__({
+                    "type": "status",
+                    "data": {
+                        "description": "Sending request to Brave Search...",
+                        "done": False,
+                        "hidden": False
+                    }
+                })
+
             response = requests.get(url, headers=headers)
             response.raise_for_status()
             
@@ -61,7 +71,7 @@ class Tools:
                 await __event_emitter__({
                     "type": "status",
                     "data": {
-                        "description": "Extracting search results...",
+                        "description": "Request successful, parsing response...",
                         "done": False,
                         "hidden": False
                     }
@@ -70,13 +80,43 @@ class Tools:
             # Parse and extract results
             soup = BeautifulSoup(response.text, 'html.parser')
             results = soup.find_all('div', class_='snippet')
+            
+            if __event_emitter__:
+                await __event_emitter__({
+                    "type": "status",
+                    "data": {
+                        "description": f"Found {len(results)} results, processing top {self.valves.max_results}...",
+                        "done": False,
+                        "hidden": False
+                    }
+                })
+
             extracted_text = []
             
-            for result in results[:self.valves.max_results]:
+            for i, result in enumerate(results[:self.valves.max_results], 1):
+                if __event_emitter__:
+                    await __event_emitter__({
+                        "type": "status",
+                        "data": {
+                            "description": f"Processing result {i}/{min(len(results), self.valves.max_results)}...",
+                            "done": False,
+                            "hidden": False
+                        }
+                    })
                 if result.get_text().strip():
                     extracted_text.append(result.get_text().strip())
             
             results_text = '\n\n'.join(extracted_text)
+
+            if __event_emitter__:
+                await __event_emitter__({
+                    "type": "status",
+                    "data": {
+                        "description": "Preparing citations...",
+                        "done": False,
+                        "hidden": False
+                    }
+                })
 
             # Emit citation for the search
             if __event_emitter__:
@@ -99,7 +139,7 @@ class Tools:
                 await __event_emitter__({
                     "type": "status",
                     "data": {
-                        "description": "Search completed",
+                        "description": f"Search completed successfully - Found {len(extracted_text)} results",
                         "done": True,
                         "hidden": False
                     }
@@ -110,6 +150,14 @@ class Tools:
         except Exception as e:
             error_msg = f"Error performing search: {str(e)}"
             if __event_emitter__:
+                await __event_emitter__({
+                    "type": "status",
+                    "data": {
+                        "description": f"Error occurred: {error_msg}",
+                        "done": True,
+                        "hidden": False
+                    }
+                })
                 await __event_emitter__({
                     "type": "message",
                     "data": {"content": f"⚠️ {error_msg}"}
